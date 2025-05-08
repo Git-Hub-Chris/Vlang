@@ -11,7 +11,13 @@ const port = 3000;
 const reqListener = async (req, res) => {
   console.log(`[route] - (${req.method}) ${req.url}`);
 
-  var filePath = "." + req.url;
+  const ROOT = path.resolve(__dirname, 'public');
+  var filePath = path.resolve(ROOT, '.' + req.url);
+  if (!filePath.startsWith(ROOT)) {
+    res.writeHead(403);
+    res.end("Access denied");
+    return;
+  }
   // if (filePath == './') {
   //     filePath = './index.html';
   // }
