@@ -1,5 +1,8 @@
 name: CI Windows
 
+permissions:
+  contents: read
+
 on:
   push:
     paths-ignore:
