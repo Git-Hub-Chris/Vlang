@@ -3,6 +3,7 @@ package main
 import "fmt"
 import "log"
 import "os"
+import "math"
 import "time"
 import "strconv"
 
@@ -51,6 +52,9 @@ func main() {
 		n := no / (nsend - i)
 		end := no
 		no -= n
+		if end < math.MinInt32 || end > math.MaxInt32 {
+			log.Fatalf("value out of range for int32: %d", end)
+		}
 		go do_send(ch, int32(no), int32(end))
 	}
 	assert_eq(int64(no), 0)	
