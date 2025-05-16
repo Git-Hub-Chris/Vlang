@@ -6,6 +6,9 @@ name: Workflow Lint
 ## If you already have `prettier` installed, to run it locally,
 ## just run: `npx prettier --check **.yml` .
 
+permissions:
+  contents: read
+
 on:
   push:
     paths:
