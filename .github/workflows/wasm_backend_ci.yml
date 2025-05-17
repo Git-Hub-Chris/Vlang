@@ -1,4 +1,6 @@
 name: wasm backend CI
+permissions:
+  contents: read
 
 on:
   push:
