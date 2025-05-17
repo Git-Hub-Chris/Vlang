@@ -10,6 +10,9 @@ on:
       - '**/vpm_ci.yml'
       - '**/cmd/tools/vpm/**'
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/master' && github.sha || github.ref }}
   cancel-in-progress: true
