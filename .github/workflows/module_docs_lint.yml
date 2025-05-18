@@ -1,4 +1,6 @@
 name: Code CI vlib modules
+permissions:
+  contents: read
 
 on:
   push:
