@@ -10,6 +10,9 @@ on:
     paths:
       - '**/periodic_ci.yml'
 
+permissions:
+  contents: read
+
 jobs:
   network:
     strategy:
