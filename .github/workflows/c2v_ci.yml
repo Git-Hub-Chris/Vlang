@@ -1,4 +1,6 @@
 name: C2V apps
+permissions:
+  contents: read
 
 on:
   push:

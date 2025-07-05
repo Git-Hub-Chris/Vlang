@@ -1,4 +1,6 @@
 name: Code CI vlib modules
+permissions:
+  contents: read
 
 on:
   push:
@@ -14,6 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check Formatting
-        uses: creyD/prettier_action@v4.5
+        uses: creyD/prettier_action@v4.6
         with:
           prettier_options: --check cmd/tools/vdoc/theme

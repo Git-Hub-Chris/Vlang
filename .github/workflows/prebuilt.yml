@@ -5,6 +5,9 @@ on:
   release:
     types: [edited, published]
 
+permissions:
+  contents: read
+
 jobs:
   ubuntu:
     runs-on: ubuntu-20.04

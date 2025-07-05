@@ -1,5 +1,8 @@
 name: hub_docker_ci
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
   push:

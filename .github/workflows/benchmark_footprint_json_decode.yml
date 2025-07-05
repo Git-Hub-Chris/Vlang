@@ -1,5 +1,9 @@
 name: json decoder benchmark CI
 
+permissions:
+  contents: read
+  actions: read
+
 on:
   push:
     paths:

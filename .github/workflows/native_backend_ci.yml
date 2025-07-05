@@ -1,5 +1,8 @@
 name: native backend CI
 
+permissions:
+  contents: read
+
 on:
   push:
     paths:

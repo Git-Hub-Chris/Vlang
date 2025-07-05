@@ -1,5 +1,8 @@
 name: Shy and PV CI
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
   push:

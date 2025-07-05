@@ -1,5 +1,8 @@
 name: Cross CI
 
+permissions:
+  contents: read
+
 on:
   push:
     paths-ignore:
