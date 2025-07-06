@@ -1,4 +1,6 @@
 name: Graphics CI
+permissions:
+  contents: read
 
 on:
   push:
