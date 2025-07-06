@@ -1,4 +1,6 @@
 name: Docs CI
+permissions:
+  contents: read
 
 ### Run on *EVERY* .v or .md related commit.
 ### The documentation *SHOULD* stay valid, and the developers should receive
