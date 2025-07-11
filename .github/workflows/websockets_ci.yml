@@ -1,5 +1,8 @@
 name: Websockets CI
 
+permissions:
+  contents: read
+
 on:
   push:
     paths-ignore:
