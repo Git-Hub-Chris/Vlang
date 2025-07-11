@@ -1,4 +1,6 @@
 name: Tools CI
+permissions:
+  contents: read
 
 on:
   push:

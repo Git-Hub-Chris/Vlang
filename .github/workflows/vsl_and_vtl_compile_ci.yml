@@ -1,5 +1,8 @@
 name: VSL and VTL
 
+permissions:
+  contents: read
+
 on:
   push:
     paths-ignore:
