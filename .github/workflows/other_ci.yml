@@ -1,4 +1,6 @@
 name: Other CI
+permissions:
+  contents: read
 
 on:
   workflow_dispatch:

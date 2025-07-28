@@ -1,4 +1,6 @@
 name: toml CI
+permissions:
+  contents: read
 
 on:
   push:
