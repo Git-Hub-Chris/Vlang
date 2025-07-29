@@ -1,4 +1,6 @@
 name: Sanitized CI
+permissions:
+  contents: read
 
 ## Running these jobs is slow (over ~1 hour, sometimes even 2)
 ## so we run them only when there is a chance that the generated
