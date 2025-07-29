@@ -1,4 +1,6 @@
 name: vab CI
+permissions:
+  contents: read
 
 on:
   workflow_call:
