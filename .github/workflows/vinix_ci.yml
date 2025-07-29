@@ -1,4 +1,6 @@
 name: Build Vinix
+permissions:
+  contents: read
 
 on:
   workflow_call:
