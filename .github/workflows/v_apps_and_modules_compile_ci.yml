@@ -1,5 +1,8 @@
 name: V Apps and Modules
 
+permissions:
+  contents: read
+
 on:
   push:
     paths-ignore:
