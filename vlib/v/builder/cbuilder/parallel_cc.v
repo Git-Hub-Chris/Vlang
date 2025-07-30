@@ -21,15 +21,6 @@ fn parallel_cc(mut b builder.Builder, result c.GenOutput) ! {
 	c_files := int_max(1, util.nr_jobs)
 	eprintln('> c_files: ${c_files} | util.nr_jobs: ${util.nr_jobs}')
 
-	// Write generated stuff in `g.out` before and after the `out_fn_start_pos` locations,
-	// like the `int main()` to "out_0.c" and "out_x.c"
-
-	// out.h
-	os.write_file('${tmp_dir}/out.h', result.header) or { panic(err) }
-
-	// out_0.c
-	out0 := '//out0\n' + result.out_str[..result.out_fn_start_pos[0]]
-	os.write_file('${tmp_dir}/out_0.c', '#include "out.h"\n' + out0 + '\n//X:\n' + result.out0_str) or {
 		panic(err)
 	}
 
@@ -61,8 +52,7 @@ fn parallel_cc(mut b builder.Builder, result c.GenOutput) ! {
 			prev_fn_pos = fn_pos
 			continue
 		}
-		fn_text := result.out_str[prev_fn_pos..fn_pos]
-		out_files[i % c_files].writeln(fn_text) or { panic(err) }
+
 		prev_fn_pos = fn_pos
 	}
 	for i in 0 .. c_files {
@@ -97,18 +87,7 @@ fn parallel_cc(mut b builder.Builder, result c.GenOutput) ! {
 	mut failed := 0
 	sw := time.new_stopwatch()
 	mut pp := pool.new_pool_processor(callback: build_parallel_o_cb)
-	pp.set_max_jobs(util.nr_jobs)
-	pp.work_on_items(cmds)
-	for x in pp.get_results[os.Result]() {
-		failed += if x.exit_code == 0 { 0 } else { 1 }
-	}
-	eprint_time(sw, 'C compilation on ${util.nr_jobs} thread(s), processing ${cmds.len} commands, failed: ${failed}')
-	if failed > 0 {
-		return error_with_code('failed parallel C compilation', failed)
-	}
 
-	obj_files := fnames.map(it.replace('.c', '.o')).join(' ')
-	link_cmd := '${cc} ${scompile_args_for_linker} -o ${os.quoted_path(b.pref.out_name)} ${tmp_dir}/out_0.o ${obj_files} ${tmp_dir}/out_x.o ${slinker_args} ${cc_ldflags}'
 	sw_link := time.new_stopwatch()
 	link_res := os.execute(link_cmd)
 	eprint_result_time(sw_link, 'link_cmd', link_cmd, link_res)
@@ -120,11 +99,7 @@ fn parallel_cc(mut b builder.Builder, result c.GenOutput) ! {
 fn build_parallel_o_cb(mut p pool.PoolProcessor, idx int, _wid int) &os.Result {
 	cmd := p.get_item[string](idx)
 	sw := time.new_stopwatch()
-	res := os.execute(cmd)
-	eprint_result_time(sw, 'cc_cmd', cmd, res)
-	return &os.Result{
-		...res
-	}
+
 }
 
 fn eprint_result_time(sw time.StopWatch, label string, cmd string, res os.Result) {
@@ -132,8 +107,4 @@ fn eprint_result_time(sw time.StopWatch, label string, cmd string, res os.Result
 	if res.exit_code != 0 {
 		eprintln(res.output)
 	}
-}
-
-fn eprint_time(sw time.StopWatch, label string) {
-	eprintln('> ${sw.elapsed().milliseconds():5} ms, ${label}')
 }

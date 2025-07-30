@@ -437,21 +437,6 @@ fn (mut g Gen) gen_fixed_array_equality_fn(left_type ast.Type) string {
 
 	mut fn_builder := strings.new_builder(512)
 	fn_builder.writeln('inline bool ${ptr_styp}_arr_eq(${arg_styp} a, ${arg_styp} b) {')
-	if left_type.has_flag(.option) {
-		fn_builder.writeln('\tif (a.state != b.state) return false;')
-		fn_builder.writeln('\tif (a.state == 2 && a.state == b.state) return true;')
-	}
-	if left_typ.sym.is_primitive_fixed_array() {
-		suffix := if left_type.has_flag(.option) { '.data' } else { '[0]' }
-		size_styp := if left_type.has_flag(.option) {
-			g.base_type(left_typ.typ.set_nr_muls(0))
-		} else {
-			arg_styp
-		}
-		fn_builder.writeln('\tif (!memcmp(&a${suffix}, &b${suffix}, sizeof(${size_styp}))) {')
-		fn_builder.writeln('\t\treturn true;')
-		fn_builder.writeln('\t}')
-	}
 	fn_builder.writeln('\tfor (int i = 0; i < ${size}; ++i) {')
 	// compare every pair of elements of the two fixed arrays
 	if elem.sym.kind == .string {
@@ -595,8 +580,6 @@ fn (mut g Gen) gen_interface_equality_fn(left_type ast.Type) string {
 	g.generated_eq_fns << left_no_ptr
 
 	info := left.sym.info
-	g.definitions.writeln('${g.static_non_parallel}bool ${ptr_styp}_interface_eq(${ptr_styp} a, ${ptr_styp} b); // auto')
-
 	mut fn_builder := strings.new_builder(512)
 	defer {
 		g.auto_fn_definitions << fn_builder.str()
@@ -604,8 +587,6 @@ fn (mut g Gen) gen_interface_equality_fn(left_type ast.Type) string {
 
 	left_arg := g.read_field(left_type, '_typ', 'a')
 	right_arg := g.read_field(left_type, '_typ', 'b')
-
-	fn_builder.writeln('${g.static_non_parallel}inline bool ${fn_name}_interface_eq(${ptr_styp} a, ${ptr_styp} b) {')
 	fn_builder.writeln('\tif (${left_arg} == ${right_arg}) {')
 	fn_builder.writeln('\t\tint idx = v_typeof_interface_idx_${idx_fn}(${left_arg});')
 	if info is ast.Interface {

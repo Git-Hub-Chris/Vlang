@@ -43,8 +43,7 @@ pub struct Gen {
 	module_built        string
 	timers_should_print bool
 mut:
-	out        strings.Builder
-	extern_out strings.Builder // extern declarations for -parallel-cc
+
 	// line_nr                   int
 	cheaders                  strings.Builder
 	preincludes               strings.Builder // allows includes to go before `definitions`
@@ -256,7 +255,8 @@ mut:
 	/////////
 	// out_parallel []strings.Builder
 	// out_idx      int
-	out_fn_start_pos     []int  // for generating multiple .c files, stores locations of all fn positions in `out` string builder
+	out_fn_start_pos     []int // for generating multiple .c files, stores locations of all fn positions in `out` string builder
+	out0_start           int
 	static_modifier      string // for parallel_cc
 	static_non_parallel  string // for non -parallel_cc
 	has_reflection       bool   // v.reflection has been imported
@@ -647,84 +647,6 @@ pub fn gen(files []&ast.File, mut table ast.Table, pref_ &pref.Preferences) GenO
 	header = '#ifndef V_HEADER_FILE\n#define V_HEADER_FILE' + header
 	header += '\n#endif\n'
 
-	mut helpers := strings.new_builder(300_000)
-	// Code added here (after the header) goes to out_0.c in parallel cc mode
-	// Previously it went to the header which resulted in duplicated code and more code
-	// to compile for the C compiler
-	if g.embedded_data.len > 0 {
-		helpers.write_string2('\n// V embedded data:\n', g.embedded_data.str())
-	}
-	if g.anon_fn_definitions.len > 0 {
-		if g.nr_closures > 0 {
-			helpers.writeln2('\n// V closure helpers', c_closure_fn_helpers(g.pref))
-		}
-		/*
-		b.writeln('\n// V anon functions:')
-		for fn_def in g.anon_fn_definitions {
-			b.writeln(fn_def)
-		}
-		*/
-		if g.pref.parallel_cc {
-			g.extern_out.writeln('extern void* __closure_create(void* fn, void* data);')
-			g.extern_out.writeln('extern void __closure_init();')
-		}
-	}
-	if g.pref.parallel_cc {
-		helpers.writeln('\n// V global/const non-precomputed definitions:')
-		for var_name in g.sorted_global_const_names {
-			if var := g.global_const_defs[var_name] {
-				if !var.def.starts_with('#define') {
-					helpers.writeln(var.def)
-					if var.def.contains(' = ') {
-						g.extern_out.writeln('extern ${var.def.all_before(' = ')};')
-					} else {
-						g.extern_out.writeln('extern ${var.def}')
-					}
-				}
-			}
-		}
-	}
-	if g.waiter_fn_definitions.len > 0 {
-		if g.pref.parallel_cc {
-			g.extern_out.write_string2('\n// V gowrappers waiter fns:\n', g.waiter_fn_definitions.bytestr())
-		}
-		helpers.write_string2('\n// V gowrappers waiter fns:\n', g.waiter_fn_definitions.str())
-	}
-	if g.auto_str_funcs.len > 0 {
-		helpers.write_string2('\n// V auto str functions:\n', g.auto_str_funcs.str())
-	}
-	if g.auto_fn_definitions.len > 0 {
-		helpers.writeln('\n// V auto functions:')
-		for fn_def in g.auto_fn_definitions {
-			helpers.writeln(fn_def)
-		}
-	}
-	if g.json_forward_decls.len > 0 {
-		helpers.write_string2('\n// V json forward decls:\n', g.json_forward_decls.bytestr())
-		if g.pref.parallel_cc {
-			g.extern_out.write_string2('\n// V json forward decls:\n', g.json_forward_decls.str())
-		}
-	}
-	if g.gowrappers.len > 0 {
-		helpers.write_string2('\n// V gowrappers:\n', g.gowrappers.str())
-	}
-	if g.dump_funcs.len > 0 {
-		helpers.write_string2('\n// V dump functions:\n', g.dump_funcs.str())
-	}
-	if g.anon_fn_definitions.len > 0 {
-		helpers.writeln('\n// V anon functions:')
-		for fn_def in g.anon_fn_definitions {
-			helpers.writeln(fn_def)
-		}
-	}
-	// End of out_0.c
-
-	shelpers := helpers.str()
-
-	if !g.pref.parallel_cc {
-		b.write_string(shelpers)
-	}
-
 	// The rest of the output
 	out_str := g.out.str()
 	extern_out_str := g.extern_out.str()
@@ -1087,8 +1009,7 @@ pub fn (mut g Gen) write_typeof_functions() {
 			if sum_info.is_generic {
 				continue
 			}
-			g.writeln('${static_prefix}char * v_typeof_sumtype_${sym.cname}(int sidx) {')
-			g.definitions.writeln('${static_prefix}char * v_typeof_sumtype_${sym.cname}(int);')
+
 			if g.pref.build_mode == .build_module {
 				g.writeln('\t\tif( sidx == _v_type_idx_${sym.cname}() ) return "${util.strip_main_name(sym.name)}";')
 				for v in sum_info.variants {
@@ -2600,7 +2521,7 @@ fn (mut g Gen) get_sumtype_casting_fn(got_ ast.Type, exp_ ast.Type) string {
 	}
 	g.sumtype_definitions[i] = true
 	g.sumtype_casting_fns << SumtypeCastingFn{
-		fn_name: fn_name
+		fn_name: fn_name + '/*ISEE*/'
 		got:     if got_.has_flag(.option) {
 			new_got := ast.idx_to_type(got_sym.idx).set_flag(.option)
 			new_got
@@ -2896,7 +2817,6 @@ fn (mut g Gen) expr_with_cast(expr ast.Expr, got_type_raw ast.Type, expected_typ
 					unwrapped_got_sym = g.table.sym(unwrapped_got_type)
 				}
 
-				fname := g.get_sumtype_casting_fn(unwrapped_got_type, unwrapped_expected_type)
 				if expr is ast.ArrayInit && got_sym.kind == .array_fixed {
 					stmt_str := g.go_before_last_stmt().trim_space()
 					g.empty_line = true
@@ -3278,7 +3198,7 @@ fn (mut g Gen) gen_clone_assignment(var_type ast.Type, val ast.Expr, typ ast.Typ
 			is_sumtype := g.table.type_kind(var_type) == .sum_type
 			if is_sumtype {
 				variant_typ := g.styp(typ).replace('*', '')
-				fn_name := g.get_sumtype_casting_fn(typ, var_type)
+				fn_name := g.get_sumtype_casting_fn(typ, var_type) + '/*L*/'
 				g.write('${fn_name}(ADDR(${variant_typ}, array_clone_static_to_depth(')
 				if typ.is_ptr() {
 					g.write('*')
