@@ -10,7 +10,6 @@ import v.util
 @[heap; minify]
 pub struct UsedFeatures {
 pub mut:
-	interfaces       bool            // interface
 	dump             bool            // dump()
 	index            bool            // string[0]
 	range_index      bool            // string[0..1]
@@ -39,7 +38,7 @@ pub mut:
 	used_veb_types   []Type          // veb context types, filled in by checker
 	used_maps        int             // how many times maps were used, filled in by markused
 	used_arrays      int             // how many times arrays were used, filled in by markused
-	used_modules     map[string]bool // filled in checker
+	external_types   bool            // true, when external type is used
 	// json             bool            // json is imported
 	debugger       bool            // debugger is used
 	comptime_calls map[string]bool // resolved name to call on comptime
@@ -95,9 +94,11 @@ pub mut:
 	pointer_size      int
 	// cache for type_to_str_using_aliases
 	cached_type_to_str map[u64]string
-	anon_struct_names  map[string]int // anon struct name -> struct sym idx
-	// counter for anon struct, avoid name conflicts.
+	// counters and maps for anon structs and unions, to avoid name conflicts.
+	anon_struct_names   map[string]int // anon struct name -> struct sym idx
 	anon_struct_counter int
+	anon_union_names    map[string]int // anon union name -> union sym idx
+	anon_union_counter  int
 }
 
 // used by vls to avoid leaks
@@ -911,6 +912,11 @@ pub fn (mut t Table) register_enum_decl(enum_decl EnumDecl) {
 @[inline]
 pub fn (mut t Table) register_anon_struct(name string, sym_idx int) {
 	t.anon_struct_names[name] = sym_idx
+}
+
+@[inline]
+pub fn (mut t Table) register_anon_union(name string, sym_idx int) {
+	t.anon_union_names[name] = sym_idx
 }
 
 pub fn (t &Table) known_type(name string) bool {
@@ -2552,6 +2558,9 @@ pub fn (t &Table) dependent_names_in_expr(expr Expr) []string {
 			names << t.dependent_names_in_expr(expr.right)
 		}
 		MapInit {
+			for key in expr.keys {
+				names << t.dependent_names_in_expr(key)
+			}
 			for val in expr.vals {
 				names << t.dependent_names_in_expr(val)
 			}

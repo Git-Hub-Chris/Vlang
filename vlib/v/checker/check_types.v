@@ -267,7 +267,7 @@ fn (mut c Checker) check_expected_call_arg(got_ ast.Type, expected_ ast.Type, la
 		}
 
 		// `fn foo(mut p &Expr); mut expr := Expr{}; foo(mut expr)`
-		if arg.is_mut && expected.nr_muls() > 1 && !got.is_ptr() {
+		if arg.is_mut && expected.nr_muls() > 1 && got.nr_muls() < expected.nr_muls() {
 			got_typ_str, expected_typ_str := c.get_string_names_of(got_, expected_)
 			return error('cannot use `${got_typ_str}` as `${expected_typ_str}`')
 		}
@@ -282,7 +282,12 @@ fn (mut c Checker) check_expected_call_arg(got_ ast.Type, expected_ ast.Type, la
 			return error('cannot use `${got_typ_str}` as `${expected_typ_str}`')
 		}
 
-		if !expected.has_flag(.option) && got.has_flag(.option)
+		is_expected_optional := if is_aliased {
+			expected_.has_flag(.option)
+		} else {
+			expected.has_flag(.option)
+		}
+		if !is_expected_optional && got.has_flag(.option)
 			&& (!(arg.expr is ast.Ident || arg.expr is ast.ComptimeSelector)
 			|| (arg.expr is ast.Ident && c.comptime.get_ct_type_var(arg.expr) != .field_var)) {
 			got_typ_str, expected_typ_str := c.get_string_names_of(got_, expected_)
@@ -942,21 +947,6 @@ fn (g Checker) get_generic_array_element_type(array ast.Array) ast.Type {
 	return typ
 }
 
-fn (g Checker) get_generic_array_fixed_element_type(array ast.ArrayFixed) ast.Type {
-	mut cparam_elem_info := array as ast.ArrayFixed
-	mut cparam_elem_sym := g.table.sym(cparam_elem_info.elem_type)
-	mut typ := ast.void_type
-	for {
-		if cparam_elem_sym.kind == .array_fixed {
-			cparam_elem_info = cparam_elem_sym.info as ast.ArrayFixed
-			cparam_elem_sym = g.table.sym(cparam_elem_info.elem_type)
-		} else {
-			return cparam_elem_info.elem_type.set_nr_muls(0)
-		}
-	}
-	return typ
-}
-
 fn (mut c Checker) infer_fn_generic_types(func &ast.Fn, mut node ast.CallExpr) {
 	mut inferred_types := []ast.Type{}
 	mut arg_inferred := []int{}
@@ -1022,7 +1012,8 @@ fn (mut c Checker) infer_fn_generic_types(func &ast.Fn, mut node ast.CallExpr) {
 					typ = ast.new_type(idx).derive(arg.typ)
 				} else if c.comptime.comptime_for_field_var != '' && sym.kind in [.struct, .any]
 					&& arg.expr is ast.ComptimeSelector {
-					comptime_typ := c.comptime.get_comptime_selector_type(arg.expr, ast.void_type)
+					comptime_typ := c.type_resolver.get_comptime_selector_type(arg.expr,
+						ast.void_type)
 					if comptime_typ != ast.void_type {
 						typ = comptime_typ
 						if func.return_type.has_flag(.generic)
@@ -1121,11 +1112,16 @@ fn (mut c Checker) infer_fn_generic_types(func &ast.Fn, mut node ast.CallExpr) {
 							}
 							// resolve lambda with generic return type
 							if arg.expr is ast.LambdaExpr && typ.has_flag(.generic) {
-								typ = c.comptime.unwrap_generic_expr(arg.expr.expr, typ)
+								typ = c.type_resolver.unwrap_generic_expr(arg.expr.expr,
+									typ)
 								if typ.has_flag(.generic) {
 									lambda_ret_gt_name := c.table.type_to_str(typ)
 									idx := func.generic_names.index(lambda_ret_gt_name)
-									typ = node.concrete_types[idx]
+									if idx < node.concrete_types.len {
+										typ = node.concrete_types[idx]
+									} else {
+										typ = ast.void_type
+									}
 								}
 							}
 						}
@@ -1160,9 +1156,9 @@ fn (mut c Checker) infer_fn_generic_types(func &ast.Fn, mut node ast.CallExpr) {
 						typ = cur_param.typ
 						mut cparam_type_sym := c.table.sym(c.unwrap_generic(typ))
 						if cparam_type_sym.kind == .array {
-							typ = c.get_generic_array_element_type(cparam_type_sym.info as ast.Array)
+							typ = c.type_resolver.get_generic_array_element_type(cparam_type_sym.info as ast.Array)
 						} else if cparam_type_sym.kind == .array_fixed {
-							typ = c.get_generic_array_fixed_element_type(cparam_type_sym.info as ast.ArrayFixed)
+							typ = c.type_resolver.get_generic_array_fixed_element_type(cparam_type_sym.info as ast.ArrayFixed)
 						}
 						typ = c.unwrap_generic(typ)
 						break

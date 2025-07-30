@@ -95,7 +95,7 @@ fn (mut c Checker) for_in_stmt(mut node ast.ForInStmt) {
 		}
 		mut is_comptime := false
 		if (node.cond is ast.Ident && node.cond.ct_expr) || node.cond is ast.ComptimeSelector {
-			ctyp := c.comptime.get_type(node.cond)
+			ctyp := c.type_resolver.get_type(node.cond)
 			if ctyp != ast.void_type {
 				is_comptime = true
 				typ = ctyp
@@ -109,7 +109,8 @@ fn (mut c Checker) for_in_stmt(mut node ast.ForInStmt) {
 					node.val_is_ref = node.cond.op == .amp
 				}
 				ast.ComptimeSelector {
-					comptime_typ := c.comptime.get_comptime_selector_type(node.cond, ast.void_type)
+					comptime_typ := c.type_resolver.get_comptime_selector_type(node.cond,
+						ast.void_type)
 					if comptime_typ != ast.void_type {
 						sym = c.table.final_sym(comptime_typ)
 						typ = comptime_typ
@@ -158,11 +159,11 @@ fn (mut c Checker) for_in_stmt(mut node ast.ForInStmt) {
 			node.scope.update_var_type(node.val_var, val_type)
 
 			if is_comptime {
-				c.comptime.type_map[node.val_var] = val_type
+				c.type_resolver.update_ct_type(node.val_var, val_type)
 				node.scope.update_ct_var_kind(node.val_var, .value_var)
 
 				defer {
-					c.comptime.type_map.delete(node.val_var)
+					c.type_resolver.type_map.delete(node.val_var)
 				}
 			}
 		} else if sym.kind == .any {
@@ -171,6 +172,8 @@ fn (mut c Checker) for_in_stmt(mut node ast.ForInStmt) {
 
 			unwrapped_typ := c.unwrap_generic(typ)
 			unwrapped_sym := c.table.sym(unwrapped_typ)
+
+			c.table.used_features.comptime_calls['${int(unwrapped_typ)}.next'] = true
 
 			if node.key_var.len > 0 {
 				key_type := match unwrapped_sym.kind {
@@ -181,11 +184,11 @@ fn (mut c Checker) for_in_stmt(mut node ast.ForInStmt) {
 				node.scope.update_var_type(node.key_var, key_type)
 
 				if is_comptime {
-					c.comptime.type_map[node.key_var] = key_type
+					c.type_resolver.update_ct_type(node.key_var, key_type)
 					node.scope.update_ct_var_kind(node.key_var, .key_var)
 
 					defer {
-						c.comptime.type_map.delete(node.key_var)
+						c.type_resolver.type_map.delete(node.key_var)
 					}
 				}
 			}
@@ -194,11 +197,11 @@ fn (mut c Checker) for_in_stmt(mut node ast.ForInStmt) {
 			node.scope.update_var_type(node.val_var, value_type)
 
 			if is_comptime {
-				c.comptime.type_map[node.val_var] = value_type
+				c.type_resolver.update_ct_type(node.val_var, value_type)
 				node.scope.update_ct_var_kind(node.val_var, .value_var)
 
 				defer {
-					c.comptime.type_map.delete(node.val_var)
+					c.type_resolver.type_map.delete(node.val_var)
 				}
 			}
 		} else {
@@ -219,11 +222,11 @@ fn (mut c Checker) for_in_stmt(mut node ast.ForInStmt) {
 				node.scope.update_var_type(node.key_var, key_type)
 
 				if is_comptime {
-					c.comptime.type_map[node.key_var] = key_type
+					c.type_resolver.update_ct_type(node.key_var, key_type)
 					node.scope.update_ct_var_kind(node.key_var, .key_var)
 
 					defer {
-						c.comptime.type_map.delete(node.key_var)
+						c.type_resolver.type_map.delete(node.key_var)
 					}
 				}
 			}
@@ -278,11 +281,11 @@ fn (mut c Checker) for_in_stmt(mut node ast.ForInStmt) {
 			node.val_type = value_type
 			node.scope.update_var_type(node.val_var, value_type)
 			if is_comptime {
-				c.comptime.type_map[node.val_var] = value_type
+				c.type_resolver.update_ct_type(node.val_var, value_type)
 				node.scope.update_ct_var_kind(node.val_var, .value_var)
 
 				defer {
-					c.comptime.type_map.delete(node.val_var)
+					c.type_resolver.type_map.delete(node.val_var)
 				}
 			}
 		}

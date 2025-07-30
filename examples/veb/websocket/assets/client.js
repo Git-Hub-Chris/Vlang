@@ -16,7 +16,9 @@ function start_reconnecting_socket(timeout, target) {
    var nsocket = new WebSocket(target);
    nsocket.addEventListener('open', (event) => {   console.log('Connected to WS server'); set_status('connected'); });
    nsocket.addEventListener('message', (event) => {
-      messageList.innerHTML += `<li>received: <b>${event.data}</b></li>`;
+      const listItem = document.createElement('li');
+      listItem.textContent = `received: ${event.data}`;
+      messageList.appendChild(listItem);
       set_status('received message');
    });
    nsocket.addEventListener('close', (event) => {  

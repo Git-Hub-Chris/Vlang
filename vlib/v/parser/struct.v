@@ -13,10 +13,15 @@ fn (mut p Parser) struct_decl(is_anon bool) ast.StructDecl {
 	attrs := p.attrs
 	start_pos := p.tok.pos()
 	mut is_pub := p.tok.kind == .key_pub
+	mut is_shared := p.tok.kind == .key_shared
 	if is_pub {
 		p.next()
 	}
 	if is_anon {
+		if is_shared {
+			p.register_auto_import('sync')
+			p.next()
+		}
 		is_pub = true
 	}
 	is_union := p.tok.kind == .key_union
@@ -32,8 +37,13 @@ fn (mut p Parser) struct_decl(is_anon bool) ast.StructDecl {
 		return ast.StructDecl{}
 	}
 	mut name := if is_anon {
-		p.table.anon_struct_counter++
-		'_VAnonStruct${p.table.anon_struct_counter}'
+		if is_union {
+			p.table.anon_union_counter++
+			'_VAnonUnion${p.table.anon_union_counter}'
+		} else {
+			p.table.anon_struct_counter++
+			'_VAnonStruct${p.table.anon_struct_counter}'
+		}
 	} else {
 		p.check_name()
 	}
@@ -236,11 +246,21 @@ fn (mut p Parser) struct_decl(is_anon bool) ast.StructDecl {
 				// struct field
 				field_name = p.check_name()
 				p.inside_struct_field_decl = true
-				if p.tok.kind == .key_struct {
+				is_anon_struct := p.tok.kind == .key_struct
+					|| (p.tok.kind == .key_shared && p.peek_tok.kind == .key_struct)
+				is_anon_union := p.tok.kind == .key_union
+					|| (p.tok.kind == .key_shared && p.peek_tok.kind == .key_union)
+				if is_anon_struct || is_anon_union {
 					// Anon structs
+					field_is_shared := p.tok.kind == .key_shared
 					p.anon_struct_decl = p.struct_decl(true)
+					p.anon_struct_decl.language = language
 					// Find the registered anon struct type, it was registered above in `p.struct_decl()`
 					typ = p.table.find_type_idx(p.anon_struct_decl.name)
+					if field_is_shared {
+						typ = typ.set_flag(.shared_f)
+						typ = typ.set_nr_muls(1)
+					}
 				} else {
 					start_type_pos := p.tok.pos()
 					typ = p.parse_type()
@@ -378,6 +398,7 @@ fn (mut p Parser) struct_decl(is_anon bool) ast.StructDecl {
 			generic_types: generic_types
 			attrs:         attrs
 			is_anon:       is_anon
+			is_shared:     is_shared
 			has_option:    has_option
 		}
 		is_pub:     is_pub
@@ -389,7 +410,11 @@ fn (mut p Parser) struct_decl(is_anon bool) ast.StructDecl {
 	}
 	mut ret := p.table.register_sym(sym)
 	if is_anon {
-		p.table.register_anon_struct(name, ret)
+		if is_union {
+			p.table.register_anon_union(name, ret)
+		} else {
+			p.table.register_anon_struct(name, ret)
+		}
 	}
 	// allow duplicate c struct declarations
 	if ret == -1 && language != .c {
@@ -668,7 +693,7 @@ fn (mut p Parser) interface_decl() ast.InterfaceDecl {
 			is_mut = true
 			mut_pos = fields.len
 		}
-		if p.peek_tok.kind in [.lt, .lsbr] && p.peek_tok.is_next_to(p.tok) {
+		if p.peek_tok.kind == .lsbr && p.peek_tok.is_next_to(p.tok) {
 			if generic_types.len == 0 {
 				p.error_with_pos('non-generic interface `${interface_name}` cannot define a generic method',
 					p.peek_tok.pos())
@@ -738,6 +763,7 @@ fn (mut p Parser) interface_decl() ast.InterfaceDecl {
 				is_pub:        true
 				is_method:     true
 				receiver_type: typ
+				no_body:       true
 			}
 			ts.register_method(tmethod)
 			info.methods << tmethod

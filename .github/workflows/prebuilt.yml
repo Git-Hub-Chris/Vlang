@@ -5,6 +5,9 @@ on:
   release:
     types: [edited, published]
 
+permissions:
+  contents: read
+
 jobs:
   ubuntu:
     runs-on: ubuntu-20.04
@@ -12,7 +15,7 @@ jobs:
     steps:
       - name: Download V
         run: |
-          wget https://github.com/vlang/v/releases/latest/download/v_linux.zip
+          .github/workflows/retry.sh https://github.com/vlang/v/releases/latest/download/v_linux.zip
           unzip v_linux.zip
           cd v
           ./v -version
@@ -29,7 +32,7 @@ jobs:
     steps:
       - name: Download V
         run: |
-          wget https://github.com/vlang/v/releases/latest/download/v_macos_arm64.zip
+          .github/workflows/retry.sh https://github.com/vlang/v/releases/latest/download/v_macos_arm64.zip
           unzip v_macos_arm64.zip
           cd v
           ./v -version
@@ -45,7 +48,7 @@ jobs:
     steps:
       - name: Download V
         run: |
-          wget https://github.com/vlang/v/releases/latest/download/v_macos_x86_64.zip
+          .github/workflows/retry.sh https://github.com/vlang/v/releases/latest/download/v_macos_x86_64.zip
           unzip v_macos_x86_64.zip
           cd v
           ./v -version

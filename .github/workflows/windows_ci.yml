@@ -1,5 +1,8 @@
 name: CI Windows
 
+permissions:
+  contents: read
+
 on:
   push:
     paths-ignore:
@@ -45,7 +48,7 @@ jobs:
           gcc -Werror -municode -w v.c -lws2_32
       - name: Install dependencies
         run: |
-          v setup-freetype
+          v retry -- v setup-freetype
           .\.github\workflows\windows-install-sqlite.bat
       - name: v doctor
         run: |
@@ -100,7 +103,7 @@ jobs:
         run: v -no-retry-compilation -gc boehm run examples/hello_world.v
       - name: Install dependencies
         run: |
-          v setup-freetype
+          v retry -- v setup-freetype
           .\.github\workflows\windows-install-sqlite.bat
       - name: v doctor
         run: |
@@ -151,7 +154,7 @@ jobs:
           .\thirdparty\tcc\tcc.exe -Werror -w -ladvapi32 -lws2_32 -bt10 v.c
       - name: Install dependencies
         run: |
-          v setup-freetype
+          v retry -- v setup-freetype
           .\.github\workflows\windows-install-sqlite.bat
       - name: v doctor
         run: |

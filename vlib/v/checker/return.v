@@ -108,7 +108,12 @@ fn (mut c Checker) return_stmt(mut node ast.Return) {
 						typ = c.unwrap_generic(expr.obj.smartcasts.last())
 					}
 					if expr.obj.ct_type_var != .no_comptime {
-						typ = c.comptime.get_type_or_default(expr, typ)
+						typ = c.type_resolver.get_type_or_default(expr, typ)
+					}
+					if mut expr.obj.expr is ast.IfGuardExpr {
+						if var := expr.scope.find_var(expr.name) {
+							typ = var.typ
+						}
 					}
 				}
 			}
@@ -354,6 +359,10 @@ fn has_top_return(stmts []ast.Stmt) bool {
 					if stmt.expr.method_name == 'compile_error' {
 						return true
 					}
+				} else if stmt.expr is ast.LockExpr {
+					if has_top_return(stmt.expr.stmts) {
+						return true
+					}
 				}
 			}
 			else {}
@@ -383,7 +392,7 @@ fn (mut c Checker) check_noreturn_fn_decl(mut node ast.FnDecl) {
 			ast.ExprStmt {
 				if last_stmt.expr is ast.CallExpr {
 					if last_stmt.expr.should_be_skipped {
-						c.error('[noreturn] functions cannot end with a skippable `[if ..]` call',
+						c.error('@[noreturn] functions cannot end with a skippable `@[if ..]` call',
 							last_stmt.pos)
 						return
 					}

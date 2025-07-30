@@ -6,6 +6,9 @@ name: Workflow Lint
 ## If you already have `prettier` installed, to run it locally,
 ## just run: `npx prettier --check **.yml` .
 
+permissions:
+  contents: read
+
 on:
   push:
     paths:
@@ -20,6 +23,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify formatting
-        uses: creyD/prettier_action@v4.3
+        uses: creyD/prettier_action@v4.6
         with:
           prettier_options: --check **.yml
