@@ -85,7 +85,7 @@ jobs:
       VJOBS: 1
       VTEST_SHOW_START: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build V
         run: make -j4 && ./v symlink
       - name: Ensure code is well formatted
@@ -111,7 +111,7 @@ jobs:
       VJOBS: 1
       VTEST_SHOW_START: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build V
         run: make -j4 && ./v symlink
       - name: Ensure code is well formatted
@@ -136,7 +136,7 @@ jobs:
       VJOBS: 1
       VTEST_SHOW_START: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build V
         run: make -j4 && ./v symlink
       - name: Ensure code is well formatted
@@ -165,7 +165,7 @@ jobs:
       VJOBS: 1
       VTEST_SHOW_START: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build
         run: |
           echo %VFLAGS%
@@ -189,7 +189,7 @@ jobs:
       VJOBS: 1
       VTEST_SHOW_START: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build V
         run: make -j4 && ./v symlink
       - name: Ensure code is well formatted
@@ -219,7 +219,7 @@ jobs:
       VJOBS: 1
       VTEST_SHOW_START: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build V
         run: make -j4 && ./v symlink
       - name: Ensure code is well formatted

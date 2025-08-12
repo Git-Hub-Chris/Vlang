@@ -31,7 +31,7 @@ jobs:
     env:
       VFLAGS: -cc tcc -no-retry-compilation
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build v
         run: make -j4 && ./v symlink
       - name: Build v with -prealloc
@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 121
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build V
         run: make -j4 && ./v symlink
       - name: All code is formatted
@@ -143,7 +143,7 @@ jobs:
     env:
       VFLAGS: -cc clang
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build V
         run: make -j4 && ./v symlink
       - name: All code is formatted
