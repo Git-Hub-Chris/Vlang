@@ -25,7 +25,7 @@ jobs:
   test-time-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build V
         run: make
       - name: Test time functions in a timezone UTC-12
@@ -42,7 +42,7 @@ jobs:
   test-time-macos:
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build V
         run: make
       - name: Test time functions in a timezone UTC-12
@@ -59,7 +59,7 @@ jobs:
   test-time-windows:
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build V
         run: .\make.bat
       - name: Test time functions in a timezone UTC-12
